@@ -31,6 +31,7 @@
   <name>Apache Solr Contrib aggregator POM</name>
   <packaging>pom</packaging>
   <modules>
+    <module>analysis-bbnews</module>
     <module>analysis-extras</module>
     <module>analytics</module>
     <module>clustering</module>
@@ -41,6 +42,7 @@
     <module>morphlines-cell</module>
     <module>morphlines-core</module>
     <module>map-reduce</module>
+    <module>queryparser-bbnews</module>
     <module>uima</module>
     <module>velocity</module>
   </modules>
