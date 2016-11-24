@@ -44,7 +44,7 @@ public class BBTermsQueryBuilder implements QueryBuilder {
   }
 
   private class TermsQueryProcessor implements TermBuilder.TermProcessor {
-    private BooleanQuery.Builder bqb = null;//this will be instantiated only if the TermsQuery results in multiple terms
+    private BooleanQuery.Builder bq = null;//this will be instantiated only if the TermsQuery results in multiple terms
     private TermQuery    firstTq = null;//Keeps the first TermQuery for the first Term in the query and if there are more terms found then this will be consumed by above BooleanQuery
     private final Element xmlQueryElement;
 
@@ -56,22 +56,33 @@ public class BBTermsQueryBuilder implements QueryBuilder {
         firstTq = new TermQuery(t);
         return;
       }
-      if (bqb == null) {
-        bqb = new BooleanQuery.Builder();
-        bqb.setDisableCoord(DOMUtils.getAttribute(xmlQueryElement, "disableCoord", false));
-        bqb.add(new BooleanClause(firstTq, BooleanClause.Occur.SHOULD));
+      if (bq == null) {
+        bq = new BooleanQuery.Builder();
+        bq.setDisableCoord(DOMUtils.getAttribute(xmlQueryElement, "disableCoord", false));
+        bq.add(new BooleanClause(firstTq, BooleanClause.Occur.SHOULD));
       }
-      bqb.add(new BooleanClause(new TermQuery(t), BooleanClause.Occur.SHOULD));
+      bq.add(new BooleanClause(new TermQuery(t), BooleanClause.Occur.SHOULD));
     }
 
     public Query getQuery() {
       if (firstTq == null) {
           return new MatchAllDocsQuery();
-      } else if (bqb == null) {
-        return new BoostQuery(firstTq, DOMUtils.getAttribute(xmlQueryElement, "boost", 1.0f));
+      } else if (bq == null) {
+          float boost = DOMUtils.getAttribute(xmlQueryElement, "boost", 1.0f);
+          if (boost != 1f)
+          {
+            return new BoostQuery(firstTq, boost);
+          }
+          return firstTq;
       } else {
-        bqb.setMinimumNumberShouldMatch(DOMUtils.getAttribute(xmlQueryElement, "minimumNumberShouldMatch", 0));
-        return new BoostQuery(bqb.build(), DOMUtils.getAttribute(xmlQueryElement, "boost", 1.0f));
+          bq.setMinimumNumberShouldMatch(DOMUtils.getAttribute(xmlQueryElement, "minimumNumberShouldMatch", 0));
+          float boost = DOMUtils.getAttribute(xmlQueryElement, "boost", 1.0f);
+          Query q = bq.build();
+          if (boost != 1f)
+          {
+            return new BoostQuery(q, boost);
+          }
+          return q;
       }
     }
   }

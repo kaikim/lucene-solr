@@ -72,14 +72,17 @@ public class DisjunctionMaxQueryBuilder extends SolrQueryBuilder {
       }
     }
 
-    DisjunctionMaxQuery dq = new DisjunctionMaxQuery(queries, tieBreaker);
-    BoostQuery bq = new BoostQuery(dq, DOMUtils.getAttribute(e, "boost", 1.0f));
+    Query q = new DisjunctionMaxQuery(queries, tieBreaker);
+    float boost = DOMUtils.getAttribute(e, "boost", 1.0f);
+    if (boost != 1f) {
+      q = new BoostQuery(q, boost);
+    }
 
     //MatchallDocs query needs to be added only if there is no other queries inside the DisjunctionMaxQuery.
     //At least we preserve the users intention to execute the rest of the query. instead of flooding him with all the documents.
     if (matchAllDocsExists && !anyOtherQueryExists)
       return new MatchAllDocsQuery();
     else
-      return bq;
+      return q;
   }
 }

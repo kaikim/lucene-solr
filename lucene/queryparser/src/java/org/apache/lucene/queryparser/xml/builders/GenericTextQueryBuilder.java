@@ -76,7 +76,7 @@ public class GenericTextQueryBuilder implements QueryBuilder {
         return q;
       }
 
-      PhraseQuery.Builder pqb = null; //this will be instantiated only if the query results in multiple terms
+      PhraseQuery.Builder pq = null; //this will be instantiated only if the query results in multiple terms
       Term firstTerm = null;//Keeps the first Term in the query and if there are more terms found then this will be consumed by above PhraseQuery
       int firstPosition = 0;
 
@@ -111,12 +111,12 @@ public class GenericTextQueryBuilder implements QueryBuilder {
                 continue;
               }
 
-              if (pqb == null) {
-                pqb = new PhraseQuery.Builder();
-                pqb.add(firstTerm, firstPosition);
+              if (pq == null) {
+                pq = new PhraseQuery.Builder();
+                pq.add(firstTerm, firstPosition);
               }
 
-              pqb.add(t, position);
+              pq.add(t, position);
             }
 
           source.end();
@@ -132,19 +132,19 @@ public class GenericTextQueryBuilder implements QueryBuilder {
 
       if (firstTerm == null) {
         return new MatchAllDocsQuery();      
-      } else if (pqb == null) {
-          Query tq = new TermQuery(firstTerm);
+      } else if (pq == null) {
+          Query q = new TermQuery(firstTerm);
           float boost = DOMUtils.getAttribute(e, "boost", 1.0f);
           if (boost != 1f) {
-            tq = new BoostQuery(tq, boost);
+            q = new BoostQuery(q, boost);
           }
-          return tq;
+          return q;
       } else {
-        //TODO pqb.setSlop(phraseSlop);
-        Query q = pqb.build();
+        //TODO pq.setSlop(phraseSlop);
+        Query q = pq.build();
         float boost = DOMUtils.getAttribute(e, "boost", 1.0f);
         if (boost != 1f) {
-          q = new BoostQuery(q, boost);
+          return new BoostQuery(q, boost);
         }
         return q;
       }

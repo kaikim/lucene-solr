@@ -55,9 +55,12 @@ public class WildcardQueryBuilder extends SolrQueryBuilder
 
         value = analyzeIfMultitermTermText(field,  value, ft);
 
-        WildcardQuery wq = new WildcardQuery(new Term(field, value));
-        BoostQuery bq = new BoostQuery(wq, DOMUtils.getAttribute(e, "boost", 1.0f));
-        return bq;
+        Query q = new WildcardQuery(new Term(field, value));
+        float boost = DOMUtils.getAttribute(e, "boost", 1.0f);
+        if (boost != 1f) {
+          q = new BoostQuery(q, boost);
+        }
+        return q;
     }
 
     // Lifted from SolrQueryParserBase

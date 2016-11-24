@@ -87,8 +87,8 @@ public class PhraseQueryBuilder implements QueryBuilder {
         } finally {
             IOUtils.closeWhileHandlingException(source);
         }
-        
-        // TODO pq.setSlop(phraseSlop);
+
+        // TODO pqb.setSlop(phraseSlop);
         PhraseQuery pq = pqb.build();
         if(pq.getTerms().length == 0)
         {

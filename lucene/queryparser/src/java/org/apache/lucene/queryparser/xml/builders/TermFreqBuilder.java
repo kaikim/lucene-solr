@@ -57,17 +57,17 @@ public class TermFreqBuilder implements QueryBuilder {
     if (q instanceof TermQuery) {
       return new TermFreqQuery((TermQuery)q, termFreqRange);
     } else if (q instanceof BooleanQuery) {
-      BooleanQuery bq = (BooleanQuery)q;
-      BooleanQuery.Builder bqb = new BooleanQuery.Builder();
-      for (BooleanClause bc : bq.clauses()) {
+      BooleanQuery oldbq = (BooleanQuery)q;
+      BooleanQuery.Builder bq = new BooleanQuery.Builder();
+      for (BooleanClause bc : oldbq.clauses()) {
         Query subq = bc.getQuery();
         if (subq instanceof TermQuery) {
-          bqb.add(new TermFreqQuery((TermQuery)subq, termFreqRange), bc.getOccur());
+          bq.add(new TermFreqQuery((TermQuery)subq, termFreqRange), bc.getOccur() );
         } else {
           throw new ParserException("Sub-Query is of unsupported type: "+subq);
         }
       }
-      return bq;
+      return bq.build();
     } else {
       throw new ParserException("Query is of unsupported type: "+q);
     }
