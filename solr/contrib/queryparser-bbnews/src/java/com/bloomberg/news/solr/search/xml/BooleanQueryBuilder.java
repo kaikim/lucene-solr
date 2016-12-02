@@ -45,16 +45,12 @@ import org.w3c.dom.NodeList;
 /**
  * Builder for {@link BooleanQuery}
  */
-public class BooleanQueryBuilder extends SolrQueryBuilder implements SpanQueryBuilder {
-
-  private final SpanQueryBuilder spanFactory;
+public class BooleanQueryBuilder extends SolrQueryBuilder {
 
   public BooleanQueryBuilder(String defaultField, Analyzer analyzer,
                              SolrQueryRequest req, QueryBuilder queryFactory,
                              SpanQueryBuilder spanFactory) {
-    super(defaultField, analyzer, req, queryFactory);
-
-    this.spanFactory = spanFactory;
+    super(defaultField, analyzer, req, queryFactory, spanFactory);
   }
 
   /* (non-Javadoc)
