@@ -23,7 +23,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
-import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
@@ -37,7 +36,7 @@ import org.apache.lucene.search.spans.SpanTermQuery;
 
 import java.io.IOException;
 
-public class TestBBCoreParser extends TestCoreParser {
+public class TestBBCoreParser extends TestCoreParserBase {
 
   private static String ANALYSER_PARAM     = "tests.TestParser.analyser";
   private static String DEFAULT_ANALYSER   = "mock";
@@ -212,28 +211,6 @@ public class TestBBCoreParser extends TestCoreParser {
     dumpResults("GenericTextQuery. BooleanQuery containing multiple GenericTextQuery clauses with different boost factors", q, 5);
   }
 
-  public void testDisjunctionMaxQueryTripleWildcardNearQuery() throws Exception {
-    Query q = parse("DisjunctionMaxQueryTripleWildcardNearQuery.xml");
-    int size = ((DisjunctionMaxQuery)q).getDisjuncts().size();
-    assertTrue("Expecting 2 clauses, but resulted in " + size, size == 2);
-    DisjunctionMaxQuery dm = (DisjunctionMaxQuery)q;
-    for(Query q1 : dm.getDisjuncts())
-    {
-      assertFalse("Not expecting MatchAllDocsQuery ",q1 instanceof MatchAllDocsQuery);
-    }
-  }
-
-  public void testDisjunctionMaxQueryMatchAllDocsQuery() throws Exception {
-    final Query q = parse("DisjunctionMaxQueryMatchAllDocsQuery.xml");
-    assertTrue("Expecting a MatchAllDocsQuery, but resulted in " + q.getClass(), q instanceof MatchAllDocsQuery);
-  }
-
-  public void testNearBooleanNear() throws IOException, ParserException {
-    final Query q = parse("NearBooleanNear.xml");
-    dumpResults("testNearBooleanNear", q, 5);
-  }
-
-
   //working version of (A OR B) N/5 C
   public void testNearBoolean() throws IOException {
     SpanQuery[] clauses = new SpanQuery[2];
@@ -245,11 +222,6 @@ public class TestBBCoreParser extends TestCoreParser {
     subQueries[1] = new SpanTermQuery(new Term("contents", "akbar"));
     SpanQuery sq = new SpanNearQuery(subQueries, 5, true);
     dumpResults("testNearBoolean", sq, 5);
-  }
-
-  public void testNearFirstBooleanMustXml() throws IOException, ParserException {
-    final Query q = parse("NearFirstBooleanMust.xml");
-    dumpResults("testNearFirstBooleanMustXml", q, 50);
   }
 
   public void testNearFirstBooleanMust() throws IOException {
