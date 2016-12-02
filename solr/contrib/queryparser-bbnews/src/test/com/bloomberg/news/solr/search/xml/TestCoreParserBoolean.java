@@ -20,9 +20,14 @@ package com.bloomberg.news.solr.search.xml;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.queryparser.xml.CoreParser;
 import org.apache.lucene.queryparser.xml.ParserException;
-import org.apache.lucene.queryparser.xml.TestCoreParser;
+import org.apache.lucene.queryparser.xml.TermBuilder;
+import org.apache.lucene.queryparser.xml.TestCoreParserBase;
+import org.apache.lucene.queryparser.xml.builders.BBTermQueryBuilder;
 import org.apache.lucene.queryparser.xml.builders.GenericTextQueryBuilder;
+import org.apache.lucene.queryparser.xml.builders.NearFirstQueryBuilder;
 import org.apache.lucene.queryparser.xml.builders.NearQueryBuilder;
+import org.apache.lucene.queryparser.xml.builders.SpanQueryBuilder;
+import org.apache.lucene.queryparser.xml.builders.TermFreqBuilder;
 import org.apache.lucene.queryparser.xml.builders.WildcardNearQueryBuilder;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -33,7 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 
-public class TestCoreParserBoolean extends TestCoreParser {
+public class TestCoreParserBoolean extends TestCoreParserBase {
 
   private class CoreParserBooleanQuery extends CoreParser {
     public CoreParserBooleanQuery(String defaultField, Analyzer analyzer) {
@@ -47,8 +52,20 @@ public class TestCoreParserBoolean extends TestCoreParser {
         spanFactory.addBuilder(queryName, builder);
       }
       {
+        SpanQueryBuilder termQueryBuilder = new BBTermQueryBuilder(new TermBuilder (analyzer));
+        queryFactory.addBuilder("TermQuery", termQueryBuilder);
+        spanFactory.addBuilder("TermQuery", termQueryBuilder);
+        queryFactory.addBuilder("TermFreqQuery", new TermFreqBuilder(termQueryBuilder));
+      }
+      {
         String queryName = "NearQuery";
         NearQueryBuilder builder = new NearQueryBuilder(spanFactory);
+        queryFactory.addBuilder(queryName, builder);
+        spanFactory.addBuilder(queryName, builder);
+      }
+      {
+        String queryName = "NearFirstQuery";
+        NearFirstQueryBuilder builder = new NearFirstQueryBuilder(spanFactory);
         queryFactory.addBuilder(queryName, builder);
         spanFactory.addBuilder(queryName, builder);
       }
@@ -79,9 +96,6 @@ public class TestCoreParserBoolean extends TestCoreParser {
   @Override
   protected Query parse(String xmlFileName) throws ParserException, IOException {
     try (InputStream xmlStream = TestCoreParserBoolean.class.getResourceAsStream(xmlFileName)) {
-      if (xmlStream == null) {
-        return super.parse(xmlFileName);
-      }
       assertNotNull("Test XML file " + xmlFileName + " cannot be found", xmlStream);
       Query result = coreParser().parse(xmlStream);
       return result;
@@ -139,5 +153,15 @@ public class TestCoreParserBoolean extends TestCoreParser {
     Query query = parse("BooleanQueryDedupe.xml");
     Query resultQuery = parse("BooleanQueryDedupeResult.xml");
     assertEquals(resultQuery, query);
+  }
+
+  public void testNearBooleanNear() throws IOException, ParserException {
+    final Query q = parse("NearBooleanNear.xml");
+    dumpResults("testNearBooleanNear", q, 5);
+  }
+
+  public void testNearFirstBooleanMustXml() throws IOException, ParserException {
+    final Query q = parse("NearFirstBooleanMust.xml");
+    dumpResults("testNearFirstBooleanMustXml", q, 50);
   }
 }

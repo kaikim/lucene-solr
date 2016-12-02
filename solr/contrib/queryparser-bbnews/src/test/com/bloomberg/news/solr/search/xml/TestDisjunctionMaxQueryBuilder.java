@@ -1,5 +1,8 @@
 package com.bloomberg.news.solr.search.xml;
 
+import org.apache.lucene.queryparser.xml.CoreParser;
+import org.apache.lucene.queryparser.xml.ParserException;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,21 +20,14 @@ package com.bloomberg.news.solr.search.xml;
  * limitations under the License.
  */
 
-import org.apache.lucene.queryparser.xml.QueryBuilderFactory;
-import org.apache.lucene.queryparser.xml.builders.MatchAllDocsQueryBuilder;
-import org.apache.lucene.queryparser.xml.builders.TermQueryBuilder;
+import org.apache.lucene.queryparser.xml.TestCoreParserBase;
+import org.apache.lucene.queryparser.xml.builders.WildcardNearQueryBuilder;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.LuceneTestCase;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -40,14 +36,36 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class TestDisjunctionMaxQueryBuilder extends LuceneTestCase {
+public class TestDisjunctionMaxQueryBuilder extends TestCoreParserBase {
+
+  private class CoreParserDisjunctionMax extends CoreParser {
+    public CoreParserDisjunctionMax(String defaultField, Analyzer analyzer) {
+      super(defaultField, analyzer);
+
+      // the query builder to be tested
+      {
+        String queryName = "DisjunctionMaxQuery";
+        DisjunctionMaxQueryBuilder builder = new DisjunctionMaxQueryBuilder(defaultField, analyzer, null, queryFactory);
+        queryFactory.addBuilder(queryName, builder);
+      }
+    }
+  }
+
+  protected CoreParser newCoreParser(String defaultField, Analyzer analyzer) {
+    final CoreParser coreParser = new CoreParserDisjunctionMax(defaultField, analyzer);
+
+    // some additional builders to help
+    {
+      String queryName = "WildcardNearQuery";
+      WildcardNearQueryBuilder builder = new WildcardNearQueryBuilder(analyzer);
+      coreParser.addQueryBuilder(queryName, builder);
+      coreParser.addSpanBuilder(queryName, builder);
+    }
+
+    return coreParser;
+  }
 
   public void testDisjunctionMaxQuery() throws Exception {
-
-    final QueryBuilderFactory queryFactory = new QueryBuilderFactory();
-    queryFactory.addBuilder("TermQuery", new TermQueryBuilder());
-    queryFactory.addBuilder("MatchAllDocsQuery", new MatchAllDocsQueryBuilder());
-    final DisjunctionMaxQueryBuilder dmqBuilder = new DisjunctionMaxQueryBuilder(null, null, null, queryFactory);
 
     final float tieBreakerMultiplier = random().nextFloat();
     final boolean madQueryOnly = random().nextBoolean();
@@ -55,7 +73,6 @@ public class TestDisjunctionMaxQueryBuilder extends LuceneTestCase {
         + (madQueryOnly ? "" : "<TermQuery fieldName='title'>guide</TermQuery>")
         + "<MatchAllDocsQuery/>"
         + "</DisjunctionMaxQuery>";
-    final Document doc = getDocumentFromString(xml);
 
     final Query expectedQuery;
     if (madQueryOnly) {
@@ -67,20 +84,41 @@ public class TestDisjunctionMaxQueryBuilder extends LuceneTestCase {
       expectedQuery = dmQuery;
     }
 
-    final Query actualQuery = dmqBuilder.getQuery(doc.getDocumentElement());
+    final Query actualQuery = parseString(xml);
     assertEquals(expectedQuery, actualQuery);
   }
 
-  // same as TestNumericRangeQueryBuilder's method of the same name
-  private static Document getDocumentFromString(String str)
-      throws SAXException, IOException, ParserConfigurationException {
-    InputStream is = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-    factory.setNamespaceAware(true);
-    DocumentBuilder builder = factory.newDocumentBuilder();
-    Document doc = builder.parse(is);
-    is.close();
-    return doc;
+  public void testDisjunctionMaxQueryTripleWildcardNearQuery() throws Exception {
+    Query q = parse("DisjunctionMaxQueryTripleWildcardNearQuery.xml");
+    int size = ((DisjunctionMaxQuery)q).getDisjuncts().size();
+    assertTrue("Expecting 2 clauses, but resulted in " + size, size == 2);
+    DisjunctionMaxQuery dm = (DisjunctionMaxQuery)q;
+    for(Query q1 : dm.getDisjuncts())
+    {
+      assertFalse("Not expecting MatchAllDocsQuery ",q1 instanceof MatchAllDocsQuery);
+    }
+  }
+
+  public void testDisjunctionMaxQueryMatchAllDocsQuery() throws Exception {
+    final Query q = parse("DisjunctionMaxQueryMatchAllDocsQuery.xml");
+    assertTrue("Expecting a MatchAllDocsQuery, but resulted in " + q.getClass(), q instanceof MatchAllDocsQuery);
+  }
+
+  @Override
+  protected Query parse(String xmlFileName) throws ParserException, IOException {
+    try (InputStream xmlStream = TestDisjunctionMaxQueryBuilder.class.getResourceAsStream(xmlFileName)) {
+      assertNotNull("Test XML file " + xmlFileName + " cannot be found", xmlStream);
+      Query result = coreParser().parse(xmlStream);
+      return result;
+    }
+  }
+
+  protected Query parseString(String xmlData) throws ParserException, IOException {
+    try (InputStream is = new ByteArrayInputStream(xmlData.getBytes(StandardCharsets.UTF_8))) {
+      assertNotNull("Test XML data " + xmlData + " cannot be extracted", is);
+      Query result = coreParser().parse(is);
+      return result;
+    }
   }
 
 }
