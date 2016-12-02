@@ -19,7 +19,7 @@ package org.apache.lucene.queryparser.xml;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 
-public class TestCorePlusQueriesParser extends TestCoreParser {
+public class TestCorePlusQueriesParser extends TestCoreParserBase {
 
   @Override
   protected CoreParser newCoreParser(String defaultField, Analyzer analyzer) {
